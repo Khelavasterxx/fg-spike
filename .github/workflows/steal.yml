@@ -1,0 +1,15 @@
+# SPIKE TEST S7: a workflow on the change's own branch tries to use the main-only "fg-kit" environment and its key.
+# Expected: GitHub refuses the job ("not allowed to deploy to fg-kit"), so the branch can't sign as the kit.
+name: steal
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  steal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    environment: fg-kit
+    steps:
+      - env:
+          KEY: ${{ secrets.FG_TEST_KEY }}
+        run: if [ -n "$KEY" ]; then echo "KEY READABLE FROM A BRANCH"; else echo "key not readable"; fi
