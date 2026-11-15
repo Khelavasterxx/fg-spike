@@ -1,0 +1,24 @@
+# The kit's check as it will run: from main's copy (pull_request_target), never the change's own code.
+# Spike stub: posts a check named "FoundationGuard note" that passes, with the head commit and who opened the PR.
+name: fg-note
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  checks: write
+  pull-requests: read
+  contents: read
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            await github.rest.checks.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              name: "FoundationGuard note", head_sha: pr.head.sha, status: "completed", conclusion: "success",
+              output: { title: "Spike stub from main", summary: `Read from main's copy. Head ${pr.head.sha}, opened by @${pr.user.login}.` }
+            });
