@@ -1,5 +1,5 @@
 # The kit's check as it will run: from main's copy (pull_request_target), never the change's own code.
-# Spike stub: posts a check named "FoundationGuard note" that passes, with the head commit and who opened the PR.
+# Round 2: the job runs in the "fg-kit" environment, which only main may use, and says whether it can read the key.
 name: fg-note
 on:
   pull_request_target:
@@ -12,13 +12,18 @@ jobs:
   note:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    environment: fg-kit
     steps:
       - uses: actions/github-script@v7
+        env:
+          KEY: ${{ secrets.FG_TEST_KEY }}
         with:
           script: |
             const pr = context.payload.pull_request;
+            const readable = (process.env.KEY || "").length > 0;
             await github.rest.checks.create({
               owner: context.repo.owner, repo: context.repo.repo,
               name: "FoundationGuard note", head_sha: pr.head.sha, status: "completed", conclusion: "success",
-              output: { title: "Spike stub from main", summary: `Read from main's copy. Head ${pr.head.sha}, opened by @${pr.user.login}.` }
+              output: { title: `Spike stub from main (key readable: ${readable ? "yes" : "no"})`,
+                        summary: `Read from main's copy in the fg-kit environment. Key readable: ${readable ? "yes" : "no"}. Head ${pr.head.sha}, opened by @${pr.user.login}.` }
             });
