@@ -29,9 +29,15 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             const readable = (process.env.KEY || "").length > 0;
+            // A crude stand-in for the kit's judgement: a change that adds or edits any other workflow fails the note.
+            const files = await github.paginate(github.rest.pulls.listFiles,
+              { owner: context.repo.owner, repo: context.repo.repo, pull_number: pr.number, per_page: 100 });
+            const wf = files.map(f => f.filename).filter(n => n.startsWith(".github/workflows/"));
+            const bad = wf.some(n => n !== ".github/workflows/fg-note.yml");
             await github.rest.checks.create({
               owner: context.repo.owner, repo: context.repo.repo,
-              name: "FoundationGuard note", head_sha: pr.head.sha, status: "completed", conclusion: "success",
-              output: { title: `Posted by the kit's app from main (key readable: ${readable ? "yes" : "no"})`,
-                        summary: `Read from main's copy in the fg-kit environment. Key readable: ${readable ? "yes" : "no"}. Head ${pr.head.sha}, opened by @${pr.user.login}.` }
+              name: "FoundationGuard note", head_sha: pr.head.sha, status: "completed",
+              conclusion: bad ? "failure" : "success",
+              output: { title: bad ? "This change edits a workflow: an owner must look" : `Posted by the kit's app from main (key readable: ${readable ? "yes" : "no"})`,
+                        summary: `Read from main's copy in the fg-kit environment. Workflows changed: ${wf.join(", ") || "none"}. Head ${pr.head.sha}, opened by @${pr.user.login}.` }
             });
