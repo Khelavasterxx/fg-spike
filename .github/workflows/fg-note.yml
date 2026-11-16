@@ -1,5 +1,7 @@
 # The kit's check as it will run: from main's copy (pull_request_target), never the change's own code.
-# Round 2: the job runs in the "fg-kit" environment, which only main may use, and says whether it can read the key.
+# Round 2: the job runs in the "fg-kit" environment, which only main may use.
+# Round 3: the check is posted AS THE KIT'S OWN APP (FG_APP_ID / FG_APP_KEY, kept in fg-kit), so the lock can require
+# that app's check and a workflow on a change's own branch can no longer forge it.
 name: fg-note
 on:
   pull_request_target:
@@ -14,16 +16,22 @@ jobs:
     timeout-minutes: 5
     environment: fg-kit
     steps:
+      - id: app
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FG_APP_ID }}
+          private-key: ${{ secrets.FG_APP_KEY }}
       - uses: actions/github-script@v7
         env:
           KEY: ${{ secrets.FG_TEST_KEY }}
         with:
+          github-token: ${{ steps.app.outputs.token }}
           script: |
             const pr = context.payload.pull_request;
             const readable = (process.env.KEY || "").length > 0;
             await github.rest.checks.create({
               owner: context.repo.owner, repo: context.repo.repo,
               name: "FoundationGuard note", head_sha: pr.head.sha, status: "completed", conclusion: "success",
-              output: { title: `Spike stub from main (key readable: ${readable ? "yes" : "no"})`,
+              output: { title: `Posted by the kit's app from main (key readable: ${readable ? "yes" : "no"})`,
                         summary: `Read from main's copy in the fg-kit environment. Key readable: ${readable ? "yes" : "no"}. Head ${pr.head.sha}, opened by @${pr.user.login}.` }
             });
