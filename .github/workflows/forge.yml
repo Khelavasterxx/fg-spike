@@ -1,0 +1,10 @@
+# Forge test (round 3): a workflow on the change's own branch posts a job named exactly like the kit's check.
+# With the lock pinned to the kit's app (5777526), this green job must NOT count.
+name: forge
+on: pull_request
+jobs:
+  forge:
+    name: FoundationGuard note
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "pretending to be the kit"
